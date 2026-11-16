@@ -87,7 +87,7 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
 </style>
 </head>
 <body>
-<div class="hero"><div class="in"><h1>음악 퀴즈</h1><p>곡을 등록하고 → 시작 → 지정 구간 안의 무작위 지점에서 들려드립니다.</p></div></div>
+<div class="hero"><div class="in"><h1>🎵 음악 퀴즈</h1><p>곡을 등록하고 → 시작 → 지정 구간 안의 무작위 지점에서 들려드립니다.</p></div></div>
 
 <div class="wrap">
   <!-- 설정 -->
@@ -132,7 +132,7 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
         <tbody id="ans"></tbody>
       </table>
     </div>
-    <div class="bar"><button id="btnAgain"> 다시 하기</button><button class="ghost" id="btnBack">설정으로</button></div>
+    <div class="bar"><button id="btnAgain">🔀 다시 하기</button><button class="ghost" id="btnBack">설정으로</button></div>
   </div>
 </div>
 
@@ -280,6 +280,7 @@ const ERR = {
   153: '플레이어 설정 오류입니다. file://로 열면 흔히 발생합니다. http://localhost 로 열어 주세요.'
 };
 function onErr(e) {
+  if (!armed || !queue[idx]) return;
   clearInterval(timer); timer = null; armed = false;
   $('disc').classList.remove('spin');
   queue[idx].played = null;
@@ -291,17 +292,17 @@ function onState(e) {
   const s = queue[idx];
   if (s.needSeek) {
     s.needSeek = false;
-    pickAndSeek(s, s.a, player.getDuration());
+    pickStart(s, s.a, player.getDuration());
+    player.seekTo(startPos, true);
     player.unMute();
     return;
   }
   if (!timer) beginTimer();
 }
-function pickAndSeek(s, a, b) {
+function pickStart(s, a, b) {
   const span = b - a - DUR;
-  startPos = span > 0 ? a + Math.random() * span : a;
+  startPos = Math.floor(span > 0 ? a + Math.random() * span : a);
   s.played = startPos;
-  player.seekTo(startPos, true);
 }
 function beginTimer() {
   const t0 = startPos;
@@ -338,7 +339,7 @@ function playCurrent() {
     player.loadVideoById({ videoId: s.id, startSeconds: s.a });
   } else {
     s.needSeek = false; player.unMute();
-    pickAndSeek(s, s.a, s.b);
+    pickStart(s, s.a, s.b);
     player.loadVideoById({ videoId: s.id, startSeconds: startPos });
   }
 }
