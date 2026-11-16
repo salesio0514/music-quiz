@@ -285,7 +285,7 @@ function onErr(e) {
   $('disc').classList.remove('spin');
   queue[idx].played = null;
   $('pMsg').innerHTML = `⚠ 재생 오류 (코드 ${e.data}): ${ERR[e.data] || '알 수 없는 오류'}<br>「다음」을 눌러 넘어가세요.`;
-  $('btnNext').disabled = false;
+  $('btnNext').disabled = false; nextLabel(true);
 }
 function onState(e) {
   if (e.data !== YT.PlayerState.PLAYING || !armed) return;
@@ -314,13 +314,17 @@ function beginTimer() {
     if (cur - t0 >= DUR) finishClip();
   }, 100);
 }
+function nextLabel(done) {
+  const last = idx === queue.length - 1;
+  $('btnNext').textContent = done ? (last ? '끝' : '다음') : (last ? '건너뛰고 끝 ⏭' : '건너뛰기 ⏭');
+}
 function finishClip() {
   clearInterval(timer); timer = null; armed = false;
   player.pauseVideo();
   $('disc').classList.remove('spin');
   $('pTime').textContent = '0'; $('pBar').style.width = '100%';
   $('pMsg').textContent = DUR + '초 종료!';
-  $('btnNext').disabled = false;
+  $('btnNext').disabled = false; nextLabel(true);
 }
 
 // ---------- 진행 ----------
@@ -331,9 +335,8 @@ function playCurrent() {
   $('pTime').textContent = DUR; $('pBar').style.width = '0';
   $('pMsg').textContent = '재생 중... 🎧';
   $('disc').classList.add('spin');
-  $('btnNext').disabled = true;
-  $('btnNext').textContent = idx === queue.length - 1 ? '끝' : '다음';
-  armed = true; s.played = null;
+  $('btnNext').disabled = false; nextLabel(false);
+  armed = true; s.played = null; s.endAt = null;
   if (s.b == null) {
     s.needSeek = true; player.mute(); startPos = s.a;
     player.loadVideoById({ videoId: s.id, startSeconds: s.a });
@@ -350,14 +353,23 @@ function startQuiz(n) {
 function end() {
   try { player.stopVideo(); } catch (e) {}
   $('ans').innerHTML = queue.map((s, i) => {
-    const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.played + DUR)}</span>`;
+    const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.endAt != null ? s.endAt : s.played + DUR)}</span>${s.skipped ? ' <span class="msg">(건너뜀)</span>' : ''}`;
     const go = s.played == null ? '' : `<a class="go" target="_blank" rel="noopener" href="https://youtu.be/${s.id}?t=${Math.floor(s.played)}">▶ ${fmt(s.played)}부터</a>`;
     return `<tr><td class="i">${i + 1}</td><td>${esc(s.composer)}</td><td><b>${esc(s.title)}</b></td><td>${s.genre ? `<span class="g">${esc(s.genre)}</span>` : ''}</td><td>${seg}</td><td>${go}</td></tr>`;
   }).join('');
   show('result');
 }
 $('btnStart').onclick = openModal;
-$('btnNext').onclick = () => { if (idx >= queue.length - 1) end(); else { idx++; playCurrent(); } };
+$('btnNext').onclick = () => {
+  if (armed) {                       // 재생 중 건너뛰기
+    const s = queue[idx];
+    clearInterval(timer); timer = null; armed = false;
+    try { if (s.played != null) s.endAt = Math.min(s.played + DUR, Math.max(s.played, Math.floor(player.getCurrentTime()))); player.pauseVideo(); } catch (e) {}
+    s.skipped = true;
+    $('disc').classList.remove('spin');
+  }
+  if (idx >= queue.length - 1) end(); else { idx++; playCurrent(); }
+};
 $('btnAgain').onclick = () => startQuiz(queue.length);
 $('btnBack').onclick = () => show('setup');
 </script>
