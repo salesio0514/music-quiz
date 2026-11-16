@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>음악 퀴즈 (30초 맞히기)</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--tx:#1d2330;--sub:#6b7280;--pri:#4f46e5;--bd:#e3e6ee}
+@media(prefers-color-scheme:dark){:root{--bg:#12141b;--card:#1c1f2a;--tx:#eceef5;--sub:#9aa1b2;--pri:#818cf8;--bd:#2d3243}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:20px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--sub);font-size:13px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
+.row{display:grid;grid-template-columns:28px 1fr 1.3fr .8fr 2fr 70px 70px;gap:6px;margin-bottom:6px;align-items:center}
+.row.head{color:var(--sub);font-size:12px}
+input{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:13px}
+button{padding:10px 18px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-size:15px;cursor:pointer}
+button.ghost{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+button:disabled{opacity:.4;cursor:default}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hide{display:none!important}
+#play{text-align:center;padding:40px 20px}
+.big{font-size:64px;font-weight:700;margin:10px 0}
+.prog{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:16px auto;max-width:500px}
+.prog>div{height:100%;width:0;background:var(--pri)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px;border-bottom:1px solid var(--bd);text-align:left}
+th{color:var(--sub);font-weight:600;font-size:12px}
+#ytbox{position:fixed;left:0;top:0;width:220px;height:124px;opacity:.01;pointer-events:none;z-index:-1}
+.msg{color:var(--sub);min-height:22px}
+@media(max-width:760px){.row{grid-template-columns:24px 1fr 1fr;}.row.head{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎵 음악 퀴즈</h1>
+  <div class="sub">곡 정보를 입력(최대 10곡) → 시작하면 랜덤 순서로, 지정 구간 안의 무작위 위치에서 정확히 30초만 재생됩니다.</div>
+
+  <!-- 설정 -->
+  <div id="setup">
+    <div class="card">
+      <div class="row head"><div>#</div><div>작곡가</div><div>제목</div><div>장르</div><div>YouTube URL</div><div>구간 시작</div><div>구간 끝</div></div>
+      <div id="rows"></div>
+      <div class="sub" style="margin:8px 0 0">구간은 <b>1:30</b> 또는 <b>90</b>(초) 형식. 비우면 시작=0:00, 끝=영상 끝. 구간이 30초보다 짧으면 구간 시작점부터 재생합니다.</div>
+    </div>
+    <div class="card hide" id="fileWarn" style="border-color:#e11d48">
+      <b>⚠ 현재 파일을 직접 열었습니다(file://).</b> 이 경우 YouTube가 "오류 153"으로 재생을 거부할 수 있습니다.<br>
+      <span class="sub">해결: 이 HTML이 있는 폴더에서 터미널로 <code>python3 -m http.server 8000</code> 실행 → 브라우저에서 <code>http://localhost:8000/music_quiz.html</code> 접속. (또는 GitHub Pages 등 웹 호스팅에 올려서 사용)</span>
+    </div>
+    <div class="bar">
+      <button id="btnStart">시작</button>
+      <button class="ghost" id="btnSave">임시저장</button>
+      <button class="ghost" id="btnExport">JSON 내보내기</button>
+      <button class="ghost" id="btnImport">JSON 불러오기</button>
+      <button class="ghost" id="btnClear">전체 지우기</button>
+      <input type="file" id="fileIn" accept=".json,application/json" class="hide">
+      <span class="msg" id="setupMsg"></span>
+    </div>
+  </div>
+
+  <!-- 재생 -->
+  <div id="play" class="card hide">
+    <div class="sub" id="pNo"></div>
+    <div class="big" id="pTime">30</div>
+    <div class="prog"><div id="pBar"></div></div>
+    <div class="msg" id="pMsg"></div>
+    <div style="margin-top:18px"><button id="btnNext" disabled>다음</button></div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result" class="hide">
+    <div class="card" style="text-align:center"><div class="big" style="margin:0">끝</div><div class="sub">정답표</div></div>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>작곡가</th><th>제목</th><th>장르</th></tr></thead>
+        <tbody id="ans"></tbody>
+      </table>
+    </div>
+    <div class="bar"><button id="btnAgain">다시 하기(새 랜덤)</button><button class="ghost" id="btnBack">설정으로</button></div>
+  </div>
+</div>
+<div id="ytbox"><div id="yt"></div></div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const MAX = 10, DUR = 30, KEY = 'musicQuizSongs_v1';
+const $ = id => document.getElementById(id);
+let player, apiReady = false, queue = [], idx = 0, timer = null, startPos = 0, armed = false;
+
+// ---------- 설정 UI ----------
+const rowsEl = $('rows');
+for (let i = 0; i < MAX; i++) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.innerHTML = `<div>${i + 1}</div>
+    <input data-k="composer" placeholder="작곡가">
+    <input data-k="title" placeholder="제목">
+    <input data-k="genre" placeholder="장르">
+    <input data-k="url" placeholder="https://youtu.be/...">
+    <input data-k="s" placeholder="0:00">
+    <input data-k="e" placeholder="끝까지">`;
+  rowsEl.appendChild(d);
+}
+function readRows() {
+  return [...rowsEl.children].map(r => {
+    const o = {};
+    r.querySelectorAll('input').forEach(i => o[i.dataset.k] = i.value.trim());
+    return o;
+  });
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(readRows())); } catch (e) {} }
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || '[]');
+    [...rowsEl.children].forEach((r, i) => {
+      if (!d[i]) return;
+      r.querySelectorAll('input').forEach(inp => inp.value = d[i][inp.dataset.k] || '');
+    });
+  } catch (e) {}
+}
+function fill(d) {
+  [...rowsEl.children].forEach((r, i) => {
+    r.querySelectorAll('input').forEach(inp => inp.value = (d[i] && d[i][inp.dataset.k]) || '');
+  });
+}
+function stamp(t) { $('setupMsg').textContent = t + ' (' + new Date().toLocaleTimeString('ko-KR') + ')'; }
+rowsEl.addEventListener('input', save);
+load();
+if (location.protocol === 'file:') $('fileWarn').classList.remove('hide');
+$('btnSave').onclick = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(readRows())); stamp('✅ 임시저장 완료(이 브라우저에 저장)'); }
+  catch (e) { $('setupMsg').textContent = '저장 실패: 브라우저 저장소를 사용할 수 없습니다. JSON 내보내기를 이용하세요.'; }
+};
+$('btnExport').onclick = () => {
+  const data = { app: 'music-quiz', version: 1, savedAt: new Date().toISOString(), songs: readRows() };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = 'music_quiz_' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  stamp('✅ JSON 내보내기 완료');
+};
+$('btnImport').onclick = () => $('fileIn').click();
+$('fileIn').onchange = ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const j = JSON.parse(rd.result);
+      const arr = Array.isArray(j) ? j : j.songs;
+      if (!Array.isArray(arr)) throw new Error('형식 오류');
+      if (!confirm('현재 입력 내용을 불러온 파일 내용으로 교체할까요?')) return;
+      fill(arr.slice(0, MAX)); save(); stamp('✅ JSON 불러오기 완료 (' + Math.min(arr.length, MAX) + '곡)');
+    } catch (e) { $('setupMsg').textContent = '불러오기 실패: 올바른 JSON 파일이 아닙니다.'; }
+  };
+  rd.readAsText(f); ev.target.value = '';
+};
+$('btnClear').onclick = () => {
+  if (!confirm('입력한 내용을 모두 지울까요?')) return;
+  rowsEl.querySelectorAll('input').forEach(i => i.value = ''); save();
+};
+
+// ---------- 유틸 ----------
+function vid(url) {
+  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : (/^[\w-]{11}$/.test(url) ? url : null);
+}
+function sec(t) {
+  if (!t) return null;
+  if (/^\d+(\.\d+)?$/.test(t)) return parseFloat(t);
+  const p = t.split(':').map(Number);
+  if (p.some(isNaN)) return null;
+  return p.reduce((a, b) => a * 60 + b, 0);
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function show(id) { ['setup', 'play', 'result'].forEach(x => $(x).classList.toggle('hide', x !== id)); }
+
+// ---------- YouTube ----------
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('yt', {
+    width: 220, height: 124,
+    playerVars: { playsinline: 1, controls: 0, disablekb: 1, rel: 0, fs: 0 },
+    events: { onReady: () => apiReady = true, onStateChange: onState, onError: onErr }
+  });
+}
+const ERR = {
+  2: '영상 주소(ID)가 올바르지 않습니다.',
+  5: '플레이어(HTML5) 오류입니다. 잠시 후 다시 시도해 보세요.',
+  100: '영상이 삭제되었거나 비공개입니다.',
+  101: '영상 소유자가 외부 사이트 재생(임베드)을 막아 놓았습니다. 다른 업로드(공식 음원/가사 영상 등)로 바꿔 주세요.',
+  150: '영상 소유자가 외부 사이트 재생(임베드)을 막아 놓았습니다. 다른 업로드로 바꿔 주세요.',
+  153: '플레이어 설정 오류입니다. HTML 파일을 더블클릭(file://)으로 열면 흔히 발생합니다. 아래 안내대로 로컬 서버(http://localhost)로 열어 주세요.'
+};
+function onErr(e) {
+  clearInterval(timer); timer = null; armed = false;
+  const c = e && e.data;
+  $('pMsg').innerHTML = `⚠ 재생 오류 (코드 ${c}): ${ERR[c] || '알 수 없는 오류'}<br>「다음」을 눌러 넘어가세요.`;
+  $('btnNext').disabled = false;
+}
+function onState(e) {
+  if (e.data !== YT.PlayerState.PLAYING || !armed) return;
+  const s = queue[idx];
+  if (s.needSeek) {            // 구간 끝을 비워둔 경우: 길이를 알아낸 뒤 무작위 위치로 이동
+    s.needSeek = false;
+    const dur = player.getDuration();
+    pickAndSeek(s, s.a, dur);
+    player.unMute();
+    return;                    // seek 후 다시 PLAYING 이벤트가 오면 타이머 시작
+  }
+  if (!timer) beginTimer();
+}
+function pickAndSeek(s, a, b) {
+  const span = b - a - DUR;
+  startPos = span > 0 ? a + Math.random() * span : a;
+  player.seekTo(startPos, true);
+}
+function beginTimer() {
+  const t0 = startPos;
+  timer = setInterval(() => {
+    const cur = player.getCurrentTime();
+    const used = Math.max(0, Math.min(DUR, cur - t0));
+    $('pTime').textContent = Math.ceil(DUR - used);
+    $('pBar').style.width = (used / DUR * 100) + '%';
+    if (cur - t0 >= DUR) finishClip();
+  }, 100);
+}
+function finishClip() {
+  clearInterval(timer); timer = null; armed = false;
+  player.pauseVideo();
+  $('pTime').textContent = '0';
+  $('pBar').style.width = '100%';
+  $('pMsg').textContent = '30초 종료!';
+  $('btnNext').disabled = false;
+}
+
+// ---------- 진행 ----------
+function playCurrent() {
+  const s = queue[idx];
+  clearInterval(timer); timer = null;
+  $('pNo').textContent = `${idx + 1} / ${queue.length}`;
+  $('pTime').textContent = DUR; $('pBar').style.width = '0';
+  $('pMsg').textContent = '재생 중... 🎧';
+  $('btnNext').disabled = true;
+  $('btnNext').textContent = idx === queue.length - 1 ? '끝' : '다음';
+  armed = true;
+  if (s.b == null) {            // 끝 미지정 → 먼저 음소거로 로드해서 길이 확인
+    s.needSeek = true; player.mute();
+    startPos = s.a;
+    player.loadVideoById({ videoId: s.id, startSeconds: s.a });
+  } else {
+    s.needSeek = false; player.unMute();
+    pickAndSeek(s, s.a, s.b);
+    player.loadVideoById({ videoId: s.id, startSeconds: startPos });
+  }
+}
+function start() {
+  if (!apiReady) { $('setupMsg').textContent = 'YouTube 플레이어 로딩 중... 잠시 후 다시 눌러주세요(인터넷 연결 확인).'; return; }
+  const list = readRows().map(r => ({ ...r, id: vid(r.url), a: sec(r.s) || 0, b: sec(r.e) }))
+    .filter(r => r.id && (r.title || r.composer));
+  if (!list.length) { $('setupMsg').textContent = '유효한 YouTube URL과 곡 정보를 1곡 이상 입력하세요.'; return; }
+  for (const r of list) if (r.b != null && r.b <= r.a) { $('setupMsg').textContent = `"${r.title}" 구간 끝이 시작보다 빠릅니다.`; return; }
+  $('setupMsg').textContent = '';
+  queue = shuffle(list.slice(0, MAX)); idx = 0;
+  show('play'); playCurrent();
+}
+function next() {
+  if (idx >= queue.length - 1) { end(); return; }
+  idx++; playCurrent();
+}
+function end() {
+  try { player.stopVideo(); } catch (e) {}
+  $('ans').innerHTML = queue.map((s, i) =>
+    `<tr><td>${i + 1}</td><td>${esc(s.composer)}</td><td>${esc(s.title)}</td><td>${esc(s.genre)}</td></tr>`).join('');
+  show('result');
+}
+function esc(t) { return (t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+$('btnStart').onclick = start;
+$('btnNext').onclick = next;
+$('btnAgain').onclick = start;
+$('btnBack').onclick = () => show('setup');
+</script>
+</body>
+</html>
