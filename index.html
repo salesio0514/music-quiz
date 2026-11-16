@@ -3,143 +3,200 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>음악 퀴즈 (30초 맞히기)</title>
+<title>음악 퀴즈</title>
 <style>
-:root{--bg:#f5f6fa;--card:#fff;--tx:#1d2330;--sub:#6b7280;--pri:#4f46e5;--bd:#e3e6ee}
-@media(prefers-color-scheme:dark){:root{--bg:#12141b;--card:#1c1f2a;--tx:#eceef5;--sub:#9aa1b2;--pri:#818cf8;--bd:#2d3243}}
+:root{
+  --bg:#f3f4fb;--card:#ffffff;--tx:#1b1f2e;--sub:#7a8197;--bd:#e4e7f2;
+  --pri:#6366f1;--pri2:#8b5cf6;--ok:#10b981;--danger:#ef4444;--inp:#f7f8fd;--shadow:0 6px 24px rgba(60,70,120,.08)
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0f111a;--card:#191c28;--tx:#eef0f8;--sub:#9097ad;--bd:#2a2f42;--inp:#141722;--shadow:0 6px 24px rgba(0,0,0,.35)
+}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:20px}
-.wrap{max-width:1000px;margin:0 auto}
-h1{font-size:22px;margin:0 0 4px}
-.sub{color:var(--sub);font-size:13px;margin-bottom:16px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
-.row{display:grid;grid-template-columns:28px 1fr 1.3fr .8fr 2fr 70px 70px;gap:6px;margin-bottom:6px;align-items:center}
-.row.head{color:var(--sub);font-size:12px}
-input{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:13px}
-button{padding:10px 18px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-size:15px;cursor:pointer}
-button.ghost{background:transparent;color:var(--pri);border:1px solid var(--pri)}
-button:disabled{opacity:.4;cursor:default}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;min-height:100vh}
+.hero{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;padding:34px 20px 70px}
+.hero .in{max-width:980px;margin:0 auto}
+.hero h1{margin:0;font-size:28px;letter-spacing:-.5px}
+.hero p{margin:6px 0 0;opacity:.85;font-size:14px}
+.wrap{max-width:980px;margin:-48px auto 40px;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.top b{font-size:16px}
+.chip{background:var(--inp);border:1px solid var(--bd);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--sub)}
+.song{display:grid;grid-template-columns:34px 1fr .7fr 120px 120px 36px;grid-template-areas:"n c t g g x" ". u u s e .";gap:8px;padding:12px;border:1px solid var(--bd);border-radius:14px;background:var(--inp);margin-bottom:10px}
+.song:hover{border-color:var(--pri)}
+.song .n{grid-area:n;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-size:13px;font-weight:700}
+.song [data-k=composer]{grid-area:c}.song [data-k=title]{grid-area:t}.song [data-k=genre]{grid-area:g}
+.song [data-k=url]{grid-area:u}.song [data-k=s]{grid-area:s}.song [data-k=e]{grid-area:e}
+.song .x{grid-area:x}
+input{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font-size:14px;outline:none;transition:.15s}
+input:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+button{padding:11px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button:disabled{opacity:.4;cursor:default;transform:none;filter:none}
+button.ghost{background:var(--card);color:var(--pri);border:1px solid var(--bd)}
+button.ghost:hover{border-color:var(--pri)}
+button.x{padding:0;width:34px;height:34px;background:transparent;color:var(--sub);border:1px solid var(--bd);border-radius:10px}
+button.x:hover{color:var(--danger);border-color:var(--danger)}
+button.add{width:100%;background:var(--inp);color:var(--pri);border:2px dashed var(--bd)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+.msg{color:var(--sub);font-size:13px}
 .hide{display:none!important}
-#play{text-align:center;padding:40px 20px}
-.big{font-size:64px;font-weight:700;margin:10px 0}
-.prog{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:16px auto;max-width:500px}
-.prog>div{height:100%;width:0;background:var(--pri)}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:10px;border-bottom:1px solid var(--bd);text-align:left}
-th{color:var(--sub);font-weight:600;font-size:12px}
+.hint{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6}
+.warn{border-color:var(--danger)}
+code{background:var(--inp);padding:2px 6px;border-radius:6px;font-size:12px}
+
+/* play */
+#play{text-align:center;padding:44px 20px}
+.no{display:inline-block;background:var(--inp);border:1px solid var(--bd);border-radius:999px;padding:6px 16px;font-size:13px;color:var(--sub)}
+.disc{width:150px;height:150px;border-radius:50%;margin:26px auto 8px;background:conic-gradient(from 0deg,var(--pri),var(--pri2),#ec4899,var(--pri));display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px rgba(99,102,241,.35)}
+.disc.spin{animation:spin 3s linear infinite}
+.disc i{width:48px;height:48px;border-radius:50%;background:var(--card);display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.big{font-size:60px;font-weight:800;line-height:1;margin:14px 0}
+.prog{height:10px;background:var(--inp);border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin:14px auto;max-width:460px}
+.prog>div{height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--pri2))}
+
+/* result */
+.endtitle{text-align:center;padding:30px}
+.endtitle .big{font-size:56px;margin:0;background:linear-gradient(135deg,var(--pri),var(--pri2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+th{color:var(--sub);font-weight:600;font-size:12px;text-align:left;padding:10px;border-bottom:2px solid var(--bd)}
+td{padding:12px 10px;border-bottom:1px solid var(--bd)}
+tr:last-child td{border-bottom:0}
+td.i{font-weight:800;color:var(--pri)}
+.seg{font-variant-numeric:tabular-nums;background:var(--inp);padding:3px 10px;border-radius:8px;white-space:nowrap}
+a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));padding:6px 12px;border-radius:9px;text-decoration:none;font-size:12px;white-space:nowrap}
+.g{font-size:12px;background:var(--inp);border:1px solid var(--bd);padding:2px 10px;border-radius:999px}
+
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(10,12,20,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--card);border-radius:20px;padding:26px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.35);border:1px solid var(--bd)}
+.modal h2{margin:0 0 4px;font-size:19px}
+.fld{margin:16px 0}
+.fld label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px}
+.stp{display:flex;gap:8px;align-items:center}
+.stp button{width:42px;padding:10px 0;font-size:18px}
+.stp input{text-align:center;font-size:18px;font-weight:700}
 #ytbox{position:fixed;left:0;top:0;width:220px;height:124px;opacity:.01;pointer-events:none;z-index:-1}
-.msg{color:var(--sub);min-height:22px}
-@media(max-width:760px){.row{grid-template-columns:24px 1fr 1fr;}.row.head{display:none}}
+@media(max-width:700px){
+  .song{grid-template-columns:34px 1fr 1fr 36px;grid-template-areas:"n c c x" "t t t t" "g g g g" "u u u u" "s s e e"}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🎵 음악 퀴즈</h1>
-  <div class="sub">곡 정보를 입력(최대 10곡) → 시작하면 랜덤 순서로, 지정 구간 안의 무작위 위치에서 정확히 30초만 재생됩니다.</div>
+<div class="hero"><div class="in"><h1>🎵 음악 퀴즈</h1><p>곡을 등록하고 → 시작 → 지정 구간 안의 무작위 지점에서 들려드립니다.</p></div></div>
 
+<div class="wrap">
   <!-- 설정 -->
   <div id="setup">
-    <div class="card">
-      <div class="row head"><div>#</div><div>작곡가</div><div>제목</div><div>장르</div><div>YouTube URL</div><div>구간 시작</div><div>구간 끝</div></div>
-      <div id="rows"></div>
-      <div class="sub" style="margin:8px 0 0">구간은 <b>1:30</b> 또는 <b>90</b>(초) 형식. 비우면 시작=0:00, 끝=영상 끝. 구간이 30초보다 짧으면 구간 시작점부터 재생합니다.</div>
+    <div class="card hide warn" id="fileWarn">
+      <b>⚠ 파일을 직접 열었습니다(file://)</b><br>
+      <span class="hint">YouTube가 "오류 153"으로 재생을 거부할 수 있습니다. 이 폴더에서 <code>python3 -m http.server 8000</code> 실행 후 <code>http://localhost:8000/music_quiz.html</code> 로 접속하세요. (또는 웹 호스팅)</span>
     </div>
-    <div class="card hide" id="fileWarn" style="border-color:#e11d48">
-      <b>⚠ 현재 파일을 직접 열었습니다(file://).</b> 이 경우 YouTube가 "오류 153"으로 재생을 거부할 수 있습니다.<br>
-      <span class="sub">해결: 이 HTML이 있는 폴더에서 터미널로 <code>python3 -m http.server 8000</code> 실행 → 브라우저에서 <code>http://localhost:8000/music_quiz.html</code> 접속. (또는 GitHub Pages 등 웹 호스팅에 올려서 사용)</span>
+    <div class="card">
+      <div class="top"><b>곡 목록</b><span class="chip" id="cnt">0곡</span></div>
+      <div id="rows"></div>
+      <button class="add" id="btnAdd">＋ 곡 추가</button>
+      <div class="hint">구간은 <b>1:30</b> 또는 <b>90</b>(초) 형식. 비우면 시작=0:00, 끝=영상 끝. 구간이 재생시간보다 짧으면 구간 시작점부터 재생합니다.</div>
     </div>
     <div class="bar">
-      <button id="btnStart">시작</button>
+      <button id="btnStart">▶ 시작</button>
       <button class="ghost" id="btnSave">임시저장</button>
       <button class="ghost" id="btnExport">JSON 내보내기</button>
       <button class="ghost" id="btnImport">JSON 불러오기</button>
       <button class="ghost" id="btnClear">전체 지우기</button>
       <input type="file" id="fileIn" accept=".json,application/json" class="hide">
-      <span class="msg" id="setupMsg"></span>
     </div>
+    <div class="msg" id="setupMsg" style="margin-top:10px"></div>
   </div>
 
   <!-- 재생 -->
   <div id="play" class="card hide">
-    <div class="sub" id="pNo"></div>
+    <span class="no" id="pNo"></span>
+    <div class="disc" id="disc"><i></i></div>
     <div class="big" id="pTime">30</div>
     <div class="prog"><div id="pBar"></div></div>
-    <div class="msg" id="pMsg"></div>
-    <div style="margin-top:18px"><button id="btnNext" disabled>다음</button></div>
+    <div class="msg" id="pMsg" style="min-height:40px"></div>
+    <div style="margin-top:14px"><button id="btnNext" disabled>다음</button></div>
   </div>
 
   <!-- 결과 -->
   <div id="result" class="hide">
-    <div class="card" style="text-align:center"><div class="big" style="margin:0">끝</div><div class="sub">정답표</div></div>
-    <div class="card">
+    <div class="card endtitle"><div class="big">끝</div><div class="msg">정답표 · 재생된 구간</div></div>
+    <div class="card tw">
       <table>
-        <thead><tr><th>#</th><th>작곡가</th><th>제목</th><th>장르</th></tr></thead>
+        <thead><tr><th>#</th><th>작곡가</th><th>제목</th><th>장르</th><th>재생 구간</th><th>바로가기</th></tr></thead>
         <tbody id="ans"></tbody>
       </table>
     </div>
-    <div class="bar"><button id="btnAgain">다시 하기(새 랜덤)</button><button class="ghost" id="btnBack">설정으로</button></div>
+    <div class="bar"><button id="btnAgain">🔀 다시 하기</button><button class="ghost" id="btnBack">설정으로</button></div>
+  </div>
+</div>
+
+<!-- 시작 설정 모달 -->
+<div class="ov hide" id="modal">
+  <div class="modal">
+    <h2>퀴즈 설정</h2>
+    <div class="msg" id="mInfo"></div>
+    <div class="fld"><label>곡당 재생시간 (초)</label>
+      <div class="stp"><button class="ghost" data-t="dur" data-d="-5">−</button><input type="number" id="inDur" min="1" max="300"><button class="ghost" data-t="dur" data-d="5">＋</button></div></div>
+    <div class="fld"><label>출제 곡 수</label>
+      <div class="stp"><button class="ghost" data-t="num" data-d="-1">−</button><input type="number" id="inNum" min="1"><button class="ghost" data-t="num" data-d="1">＋</button></div></div>
+    <div class="bar" style="justify-content:flex-end;margin-top:22px"><button class="ghost" id="mCancel">취소</button><button id="mGo">퀴즈 시작</button></div>
   </div>
 </div>
 <div id="ytbox"><div id="yt"></div></div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-const MAX = 10, DUR = 30, KEY = 'musicQuizSongs_v1';
+const KEY = 'musicQuizSongs_v2', KEYS = 'musicQuizOpt_v1';
 const $ = id => document.getElementById(id);
-let player, apiReady = false, queue = [], idx = 0, timer = null, startPos = 0, armed = false;
-
-// ---------- 설정 UI ----------
 const rowsEl = $('rows');
-for (let i = 0; i < MAX; i++) {
-  const d = document.createElement('div');
-  d.className = 'row';
-  d.innerHTML = `<div>${i + 1}</div>
-    <input data-k="composer" placeholder="작곡가">
-    <input data-k="title" placeholder="제목">
-    <input data-k="genre" placeholder="장르">
-    <input data-k="url" placeholder="https://youtu.be/...">
-    <input data-k="s" placeholder="0:00">
-    <input data-k="e" placeholder="끝까지">`;
-  rowsEl.appendChild(d);
+let DUR = 30, player, apiReady = false, queue = [], idx = 0, timer = null, startPos = 0, armed = false, pool = [];
+
+// ---------- 곡 목록 UI ----------
+function addRow(d = {}) {
+  const r = document.createElement('div');
+  r.className = 'song';
+  r.innerHTML = `<div class="n"></div>
+    <input data-k="composer" placeholder="작곡가"><input data-k="title" placeholder="제목"><input data-k="genre" placeholder="장르">
+    <input data-k="url" placeholder="YouTube URL (https://youtu.be/...)">
+    <input data-k="s" placeholder="시작 0:00"><input data-k="e" placeholder="끝 (비움=끝까지)" title="구간 끝: 비우면 영상 끝까지">
+    <button class="x" title="삭제">✕</button>`;
+  r.querySelectorAll('input').forEach(i => i.value = d[i.dataset.k] || '');
+  r.querySelector('.x').onclick = () => { r.remove(); if (!rowsEl.children.length) addRow(); renum(); save(); };
+  rowsEl.appendChild(r); renum();
+  return r;
+}
+function renum() {
+  [...rowsEl.children].forEach((r, i) => r.querySelector('.n').textContent = i + 1);
+  $('cnt').textContent = rowsEl.children.length + '곡';
 }
 function readRows() {
-  return [...rowsEl.children].map(r => {
-    const o = {};
-    r.querySelectorAll('input').forEach(i => o[i.dataset.k] = i.value.trim());
-    return o;
-  });
+  return [...rowsEl.children].map(r => { const o = {}; r.querySelectorAll('input').forEach(i => o[i.dataset.k] = i.value.trim()); return o; });
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(readRows())); } catch (e) {} }
-function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY) || '[]');
-    [...rowsEl.children].forEach((r, i) => {
-      if (!d[i]) return;
-      r.querySelectorAll('input').forEach(inp => inp.value = d[i][inp.dataset.k] || '');
-    });
-  } catch (e) {}
+function fill(arr) {
+  rowsEl.innerHTML = '';
+  (arr.length ? arr : [{}]).forEach(addRow);
 }
-function fill(d) {
-  [...rowsEl.children].forEach((r, i) => {
-    r.querySelectorAll('input').forEach(inp => inp.value = (d[i] && d[i][inp.dataset.k]) || '');
-  });
-}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(readRows())); return true; } catch (e) { return false; } }
 function stamp(t) { $('setupMsg').textContent = t + ' (' + new Date().toLocaleTimeString('ko-KR') + ')'; }
-rowsEl.addEventListener('input', save);
-load();
+
+try { fill(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (e) { fill([]); }
 if (location.protocol === 'file:') $('fileWarn').classList.remove('hide');
-$('btnSave').onclick = () => {
-  try { localStorage.setItem(KEY, JSON.stringify(readRows())); stamp('✅ 임시저장 완료(이 브라우저에 저장)'); }
-  catch (e) { $('setupMsg').textContent = '저장 실패: 브라우저 저장소를 사용할 수 없습니다. JSON 내보내기를 이용하세요.'; }
-};
+rowsEl.addEventListener('input', save);
+$('btnAdd').onclick = () => { const r = addRow(); save(); r.querySelector('input').focus(); r.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+$('btnClear').onclick = () => { if (confirm('입력한 내용을 모두 지울까요?')) { fill([]); save(); } };
+$('btnSave').onclick = () => save() ? stamp('✅ 임시저장 완료(이 브라우저)') : $('setupMsg').textContent = '저장 실패: JSON 내보내기를 이용하세요.';
 $('btnExport').onclick = () => {
-  const data = { app: 'music-quiz', version: 1, savedAt: new Date().toISOString(), songs: readRows() };
+  const data = { app: 'music-quiz', version: 2, savedAt: new Date().toISOString(), songs: readRows() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   a.download = 'music_quiz_' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  stamp('✅ JSON 내보내기 완료');
+  document.body.appendChild(a); a.click(); a.remove(); stamp('✅ JSON 내보내기 완료');
 };
 $('btnImport').onclick = () => $('fileIn').click();
 $('fileIn').onchange = ev => {
@@ -147,34 +204,64 @@ $('fileIn').onchange = ev => {
   const rd = new FileReader();
   rd.onload = () => {
     try {
-      const j = JSON.parse(rd.result);
-      const arr = Array.isArray(j) ? j : j.songs;
-      if (!Array.isArray(arr)) throw new Error('형식 오류');
-      if (!confirm('현재 입력 내용을 불러온 파일 내용으로 교체할까요?')) return;
-      fill(arr.slice(0, MAX)); save(); stamp('✅ JSON 불러오기 완료 (' + Math.min(arr.length, MAX) + '곡)');
+      const j = JSON.parse(rd.result), arr = Array.isArray(j) ? j : j.songs;
+      if (!Array.isArray(arr)) throw 0;
+      if (!confirm('현재 목록을 불러온 파일 내용(' + arr.length + '곡)으로 교체할까요?')) return;
+      fill(arr); save(); stamp('✅ 불러오기 완료 (' + arr.length + '곡)');
     } catch (e) { $('setupMsg').textContent = '불러오기 실패: 올바른 JSON 파일이 아닙니다.'; }
   };
   rd.readAsText(f); ev.target.value = '';
 };
-$('btnClear').onclick = () => {
-  if (!confirm('입력한 내용을 모두 지울까요?')) return;
-  rowsEl.querySelectorAll('input').forEach(i => i.value = ''); save();
-};
 
 // ---------- 유틸 ----------
 function vid(url) {
-  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
-  return m ? m[1] : (/^[\w-]{11}$/.test(url) ? url : null);
+  const m = (url || '').match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : (/^[\w-]{11}$/.test(url || '') ? url : null);
 }
 function sec(t) {
   if (!t) return null;
   if (/^\d+(\.\d+)?$/.test(t)) return parseFloat(t);
   const p = t.split(':').map(Number);
-  if (p.some(isNaN)) return null;
-  return p.reduce((a, b) => a * 60 + b, 0);
+  return p.some(isNaN) ? null : p.reduce((a, b) => a * 60 + b, 0);
 }
+function fmt(x) { x = Math.max(0, Math.floor(x)); const h = x / 3600 | 0, m = (x % 3600) / 60 | 0, s = x % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function show(id) { ['setup', 'play', 'result'].forEach(x => $(x).classList.toggle('hide', x !== id)); }
+function esc(t) { return (t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function show(id) { ['setup', 'play', 'result'].forEach(x => $(x).classList.toggle('hide', x !== id)); window.scrollTo(0, 0); }
+
+// ---------- 시작 설정 모달 ----------
+function openModal() {
+  if (!apiReady) { $('setupMsg').textContent = 'YouTube 플레이어 로딩 중... 잠시 후 다시 눌러주세요(인터넷 연결 확인).'; return; }
+  pool = readRows().map(r => ({ ...r, id: vid(r.url), a: sec(r.s) || 0, b: sec(r.e) })).filter(r => r.id && (r.title || r.composer));
+  if (!pool.length) { $('setupMsg').textContent = '유효한 YouTube URL과 곡 정보를 1곡 이상 입력하세요.'; return; }
+  const bad = pool.find(r => r.b != null && r.b <= r.a);
+  if (bad) { $('setupMsg').textContent = `"${bad.title}" 구간 끝이 시작보다 빠릅니다.`; return; }
+  $('setupMsg').textContent = '';
+  let o = {}; try { o = JSON.parse(localStorage.getItem(KEYS) || '{}'); } catch (e) {}
+  $('inDur').value = o.dur || 30;
+  $('inNum').value = pool.length;
+  $('inNum').max = pool.length;
+  $('mInfo').textContent = `등록된 유효 곡: ${pool.length}곡`;
+  $('modal').classList.remove('hide');
+}
+document.querySelectorAll('.stp button').forEach(b => b.onclick = () => {
+  const el = $(b.dataset.t === 'dur' ? 'inDur' : 'inNum');
+  el.value = (+el.value || 0) + (+b.dataset.d);
+  clamp();
+});
+function clamp() {
+  $('inDur').value = Math.min(300, Math.max(1, Math.round(+$('inDur').value || 30)));
+  $('inNum').value = Math.min(pool.length, Math.max(1, Math.round(+$('inNum').value || 1)));
+}
+$('inDur').onchange = $('inNum').onchange = clamp;
+$('mCancel').onclick = () => $('modal').classList.add('hide');
+$('mGo').onclick = () => {
+  clamp();
+  DUR = +$('inDur').value;
+  try { localStorage.setItem(KEYS, JSON.stringify({ dur: DUR })); } catch (e) {}
+  $('modal').classList.add('hide');
+  startQuiz(+$('inNum').value);
+};
 
 // ---------- YouTube ----------
 function onYouTubeIframeAPIReady() {
@@ -188,31 +275,32 @@ const ERR = {
   2: '영상 주소(ID)가 올바르지 않습니다.',
   5: '플레이어(HTML5) 오류입니다. 잠시 후 다시 시도해 보세요.',
   100: '영상이 삭제되었거나 비공개입니다.',
-  101: '영상 소유자가 외부 사이트 재생(임베드)을 막아 놓았습니다. 다른 업로드(공식 음원/가사 영상 등)로 바꿔 주세요.',
-  150: '영상 소유자가 외부 사이트 재생(임베드)을 막아 놓았습니다. 다른 업로드로 바꿔 주세요.',
-  153: '플레이어 설정 오류입니다. HTML 파일을 더블클릭(file://)으로 열면 흔히 발생합니다. 아래 안내대로 로컬 서버(http://localhost)로 열어 주세요.'
+  101: '영상 소유자가 외부 재생(임베드)을 막았습니다. 다른 업로드로 바꿔 주세요.',
+  150: '영상 소유자가 외부 재생(임베드)을 막았습니다. 다른 업로드로 바꿔 주세요.',
+  153: '플레이어 설정 오류입니다. file://로 열면 흔히 발생합니다. http://localhost 로 열어 주세요.'
 };
 function onErr(e) {
   clearInterval(timer); timer = null; armed = false;
-  const c = e && e.data;
-  $('pMsg').innerHTML = `⚠ 재생 오류 (코드 ${c}): ${ERR[c] || '알 수 없는 오류'}<br>「다음」을 눌러 넘어가세요.`;
+  $('disc').classList.remove('spin');
+  queue[idx].played = null;
+  $('pMsg').innerHTML = `⚠ 재생 오류 (코드 ${e.data}): ${ERR[e.data] || '알 수 없는 오류'}<br>「다음」을 눌러 넘어가세요.`;
   $('btnNext').disabled = false;
 }
 function onState(e) {
   if (e.data !== YT.PlayerState.PLAYING || !armed) return;
   const s = queue[idx];
-  if (s.needSeek) {            // 구간 끝을 비워둔 경우: 길이를 알아낸 뒤 무작위 위치로 이동
+  if (s.needSeek) {
     s.needSeek = false;
-    const dur = player.getDuration();
-    pickAndSeek(s, s.a, dur);
+    pickAndSeek(s, s.a, player.getDuration());
     player.unMute();
-    return;                    // seek 후 다시 PLAYING 이벤트가 오면 타이머 시작
+    return;
   }
   if (!timer) beginTimer();
 }
 function pickAndSeek(s, a, b) {
   const span = b - a - DUR;
   startPos = span > 0 ? a + Math.random() * span : a;
+  s.played = startPos;
   player.seekTo(startPos, true);
 }
 function beginTimer() {
@@ -228,9 +316,9 @@ function beginTimer() {
 function finishClip() {
   clearInterval(timer); timer = null; armed = false;
   player.pauseVideo();
-  $('pTime').textContent = '0';
-  $('pBar').style.width = '100%';
-  $('pMsg').textContent = '30초 종료!';
+  $('disc').classList.remove('spin');
+  $('pTime').textContent = '0'; $('pBar').style.width = '100%';
+  $('pMsg').textContent = DUR + '초 종료!';
   $('btnNext').disabled = false;
 }
 
@@ -241,12 +329,12 @@ function playCurrent() {
   $('pNo').textContent = `${idx + 1} / ${queue.length}`;
   $('pTime').textContent = DUR; $('pBar').style.width = '0';
   $('pMsg').textContent = '재생 중... 🎧';
+  $('disc').classList.add('spin');
   $('btnNext').disabled = true;
   $('btnNext').textContent = idx === queue.length - 1 ? '끝' : '다음';
-  armed = true;
-  if (s.b == null) {            // 끝 미지정 → 먼저 음소거로 로드해서 길이 확인
-    s.needSeek = true; player.mute();
-    startPos = s.a;
+  armed = true; s.played = null;
+  if (s.b == null) {
+    s.needSeek = true; player.mute(); startPos = s.a;
     player.loadVideoById({ videoId: s.id, startSeconds: s.a });
   } else {
     s.needSeek = false; player.unMute();
@@ -254,31 +342,22 @@ function playCurrent() {
     player.loadVideoById({ videoId: s.id, startSeconds: startPos });
   }
 }
-function start() {
-  if (!apiReady) { $('setupMsg').textContent = 'YouTube 플레이어 로딩 중... 잠시 후 다시 눌러주세요(인터넷 연결 확인).'; return; }
-  const list = readRows().map(r => ({ ...r, id: vid(r.url), a: sec(r.s) || 0, b: sec(r.e) }))
-    .filter(r => r.id && (r.title || r.composer));
-  if (!list.length) { $('setupMsg').textContent = '유효한 YouTube URL과 곡 정보를 1곡 이상 입력하세요.'; return; }
-  for (const r of list) if (r.b != null && r.b <= r.a) { $('setupMsg').textContent = `"${r.title}" 구간 끝이 시작보다 빠릅니다.`; return; }
-  $('setupMsg').textContent = '';
-  queue = shuffle(list.slice(0, MAX)); idx = 0;
+function startQuiz(n) {
+  queue = shuffle(pool.slice()).slice(0, n); idx = 0;
   show('play'); playCurrent();
-}
-function next() {
-  if (idx >= queue.length - 1) { end(); return; }
-  idx++; playCurrent();
 }
 function end() {
   try { player.stopVideo(); } catch (e) {}
-  $('ans').innerHTML = queue.map((s, i) =>
-    `<tr><td>${i + 1}</td><td>${esc(s.composer)}</td><td>${esc(s.title)}</td><td>${esc(s.genre)}</td></tr>`).join('');
+  $('ans').innerHTML = queue.map((s, i) => {
+    const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.played + DUR)}</span>`;
+    const go = s.played == null ? '' : `<a class="go" target="_blank" rel="noopener" href="https://youtu.be/${s.id}?t=${Math.floor(s.played)}">▶ ${fmt(s.played)}부터</a>`;
+    return `<tr><td class="i">${i + 1}</td><td>${esc(s.composer)}</td><td><b>${esc(s.title)}</b></td><td>${s.genre ? `<span class="g">${esc(s.genre)}</span>` : ''}</td><td>${seg}</td><td>${go}</td></tr>`;
+  }).join('');
   show('result');
 }
-function esc(t) { return (t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-
-$('btnStart').onclick = start;
-$('btnNext').onclick = next;
-$('btnAgain').onclick = start;
+$('btnStart').onclick = openModal;
+$('btnNext').onclick = () => { if (idx >= queue.length - 1) end(); else { idx++; playCurrent(); } };
+$('btnAgain').onclick = () => startQuiz(queue.length);
 $('btnBack').onclick = () => show('setup');
 </script>
 </body>
