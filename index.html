@@ -58,11 +58,20 @@ code{background:var(--inp);padding:2px 6px;border-radius:6px;font-size:12px}
 .prog{height:10px;background:var(--inp);border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin:14px auto;max-width:460px}
 .prog>div{height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--pri2))}
 
+.ans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-width:560px;margin:18px auto 0;text-align:left}
+.ans label{display:block;font-size:12px;color:var(--sub);margin:0 0 4px 2px}
+@media(max-width:600px){.ans{grid-template-columns:1fr}}
+.score{font-size:15px;margin-top:8px;color:var(--sub)}
+.score b{color:var(--tx);font-size:22px}
+td .my{margin-top:4px;font-size:12px;padding:3px 8px;border-radius:8px;cursor:pointer;display:inline-block;user-select:none}
+td .my.ok{background:rgba(16,185,129,.15);color:var(--ok)}
+td .my.no{background:rgba(239,68,68,.12);color:var(--danger)}
+td .cor{font-weight:700}
 /* result */
 .endtitle{text-align:center;padding:30px}
 .endtitle .big{font-size:56px;margin:0;background:linear-gradient(135deg,var(--pri),var(--pri2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
 th{color:var(--sub);font-weight:600;font-size:12px;text-align:left;padding:10px;border-bottom:2px solid var(--bd)}
 td{padding:12px 10px;border-bottom:1px solid var(--bd)}
 tr:last-child td{border-bottom:0}
@@ -120,12 +129,17 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
     <div class="big" id="pTime">30</div>
     <div class="prog"><div id="pBar"></div></div>
     <div class="msg" id="pMsg" style="min-height:40px"></div>
-    <div style="margin-top:14px"><button id="btnNext" disabled>다음</button></div>
+    <div class="ans">
+      <div><label>작곡가</label><input id="aComposer" autocomplete="off" placeholder="작곡가 입력"></div>
+      <div><label>제목</label><input id="aTitle" autocomplete="off" placeholder="제목 입력"></div>
+      <div><label>장르</label><input id="aGenre" autocomplete="off" placeholder="장르 입력"></div>
+    </div>
+    <div style="margin-top:18px"><button id="btnNext" disabled>다음</button></div>
   </div>
 
   <!-- 결과 -->
   <div id="result" class="hide">
-    <div class="card endtitle"><div class="big">끝</div><div class="msg">정답표 · 재생된 구간</div></div>
+    <div class="card endtitle"><div class="big">끝</div><div class="score" id="score"></div><div class="msg">내 답을 누르면 정답/오답을 직접 바꿀 수 있어요</div></div>
     <div class="card tw">
       <table>
         <thead><tr><th>#</th><th>작곡가</th><th>제목</th><th>장르</th><th>재생 구간</th><th>바로가기</th></tr></thead>
@@ -336,7 +350,8 @@ function playCurrent() {
   $('pMsg').textContent = '재생 중... 🎧';
   $('disc').classList.add('spin');
   $('btnNext').disabled = false; nextLabel(false);
-  armed = true; s.played = null; s.endAt = null;
+  armed = true; s.played = null; s.endAt = null; s.skipped = false; s.ans = null; s.ok = null;
+  ['aComposer', 'aTitle', 'aGenre'].forEach(i => $(i).value = '');
   if (s.b == null) {
     s.needSeek = true; player.mute(); startPos = s.a;
     player.loadVideoById({ videoId: s.id, startSeconds: s.a });
@@ -350,17 +365,44 @@ function startQuiz(n) {
   queue = shuffle(pool.slice()).slice(0, n); idx = 0;
   show('play'); playCurrent();
 }
+const FIELDS = ['composer', 'title', 'genre'];
+function norm(t) { return (t || '').toLowerCase().replace(/[\s.,·\-_'"!?()\[\]:;~]/g, ''); }
+function judge(my, cor) {
+  const a = norm(my), b = norm(cor);
+  if (!a || !b) return false;
+  return a === b || (a.length >= 2 && (b.includes(a) || a.includes(b)));
+}
 function end() {
   try { player.stopVideo(); } catch (e) {}
+  queue.forEach(s => {
+    s.ans = s.ans || { composer: '', title: '', genre: '' };
+    if (!s.ok) { s.ok = {}; FIELDS.forEach(k => s.ok[k] = judge(s.ans[k], s[k])); }
+  });
+  renderResult(); show('result');
+}
+function renderResult() {
+  let got = 0, tot = 0;
   $('ans').innerHTML = queue.map((s, i) => {
+    const cell = k => {
+      if (!s[k]) return '<span class="msg">-</span>';
+      tot++; if (s.ok[k]) got++;
+      const my = s.ans[k] ? esc(s.ans[k]) : '(무응답)';
+      return `<div class="cor">${k === 'genre' ? `<span class="g">${esc(s[k])}</span>` : esc(s[k])}</div><span class="my ${s.ok[k] ? 'ok' : 'no'}" data-i="${i}" data-k="${k}" title="클릭: 정답/오답 전환">${s.ok[k] ? '✔' : '✘'} ${my}</span>`;
+    };
     const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.endAt != null ? s.endAt : s.played + DUR)}</span>${s.skipped ? ' <span class="msg">(건너뜀)</span>' : ''}`;
     const go = s.played == null ? '' : `<a class="go" target="_blank" rel="noopener" href="https://youtu.be/${s.id}?t=${Math.floor(s.played)}">▶ ${fmt(s.played)}부터</a>`;
-    return `<tr><td class="i">${i + 1}</td><td>${esc(s.composer)}</td><td><b>${esc(s.title)}</b></td><td>${s.genre ? `<span class="g">${esc(s.genre)}</span>` : ''}</td><td>${seg}</td><td>${go}</td></tr>`;
+    return `<tr><td class="i">${i + 1}</td><td>${cell('composer')}</td><td>${cell('title')}</td><td>${cell('genre')}</td><td>${seg}</td><td>${go}</td></tr>`;
   }).join('');
-  show('result');
+  $('score').innerHTML = `점수 <b>${got}</b> / ${tot}`;
 }
+$('ans').addEventListener('click', e => {
+  const el = e.target.closest('.my'); if (!el) return;
+  const s = queue[+el.dataset.i]; s.ok[el.dataset.k] = !s.ok[el.dataset.k];
+  renderResult();
+});
 $('btnStart').onclick = openModal;
 $('btnNext').onclick = () => {
+  queue[idx].ans = { composer: $('aComposer').value.trim(), title: $('aTitle').value.trim(), genre: $('aGenre').value.trim() };
   if (armed) {                       // 재생 중 건너뛰기
     const s = queue[idx];
     clearInterval(timer); timer = null; armed = false;
