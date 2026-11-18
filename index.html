@@ -23,12 +23,16 @@ body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Ap
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
 .top b{font-size:16px}
 .chip{background:var(--inp);border:1px solid var(--bd);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--sub)}
-.song{display:grid;grid-template-columns:34px 1fr .7fr 120px 120px 36px;grid-template-areas:"n c t g g x" ". u u s e .";gap:8px;padding:12px;border:1px solid var(--bd);border-radius:14px;background:var(--inp);margin-bottom:10px}
+.song{padding:14px;border:1px solid var(--bd);border-radius:14px;background:var(--inp);margin-bottom:12px}
+.head{display:grid;grid-template-columns:34px 1fr .7fr 140px auto;gap:8px;align-items:center}
+.srcs{margin:10px 0 6px 42px;display:flex;flex-direction:column;gap:6px}
+.src{display:grid;grid-template-columns:1fr 110px 130px auto;gap:6px;align-items:center}
+.src::before{content:none}
+.addsrc{margin-left:42px;padding:7px 14px;font-size:12px}
+button.sx{padding:0 10px;width:auto;height:32px;font-size:12px;background:transparent;color:var(--sub);border:1px solid var(--bd);border-radius:9px}
+button.sx:hover{color:var(--danger);border-color:var(--danger)}
 .song:hover{border-color:var(--pri)}
 .song .n{grid-area:n;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-size:13px;font-weight:700}
-.song [data-k=composer]{grid-area:c}.song [data-k=title]{grid-area:t}.song [data-k=genre]{grid-area:g}
-.song [data-k=url]{grid-area:u}.song [data-k=s]{grid-area:s}.song [data-k=e]{grid-area:e}
-.song .x{grid-area:x}
 input{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font-size:14px;outline:none;transition:.15s}
 input:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 button{padding:11px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
@@ -36,7 +40,7 @@ button:hover{filter:brightness(1.08);transform:translateY(-1px)}
 button:disabled{opacity:.4;cursor:default;transform:none;filter:none}
 button.ghost{background:var(--card);color:var(--pri);border:1px solid var(--bd)}
 button.ghost:hover{border-color:var(--pri)}
-button.x{padding:0;width:34px;height:34px;background:transparent;color:var(--sub);border:1px solid var(--bd);border-radius:10px}
+button.x{padding:0 12px;width:auto;height:34px;font-size:12px;background:transparent;color:var(--sub);border:1px solid var(--bd);border-radius:10px}
 button.x:hover{color:var(--danger);border-color:var(--danger)}
 button.add{width:100%;background:var(--inp);color:var(--pri);border:2px dashed var(--bd)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -91,28 +95,32 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
 .stp input{text-align:center;font-size:18px;font-weight:700}
 #ytbox{position:fixed;left:0;top:0;width:220px;height:124px;opacity:.01;pointer-events:none;z-index:-1}
 @media(max-width:700px){
-  .song{grid-template-columns:34px 1fr 1fr 36px;grid-template-areas:"n c c x" "t t t t" "g g g g" "u u u u" "s s e e"}
+  .head{grid-template-columns:34px 1fr auto}
+  .head input[data-k=title],.head input[data-k=genre]{grid-column:1/-1}
+  .srcs,.addsrc{margin-left:0}
+  .src{grid-template-columns:1fr 1fr auto}
+  .src input[data-k=url]{grid-column:1/-1}
 }
 </style>
 </head>
 <body>
-<div class="hero"><div class="in"><h1>🎵 음악 퀴즈</h1><p>곡을 등록하고 → 시작 → 지정 구간 안의 무작위 지점에서 들려드립니다.</p></div></div>
+<div class="hero"><div class="in"><h1>음악 퀴즈</h1><p>곡을 등록한 뒤 시작하면, 지정한 구간 안의 무작위 지점에서 들려드립니다.</p></div></div>
 
 <div class="wrap">
   <!-- 설정 -->
   <div id="setup">
     <div class="card hide warn" id="fileWarn">
-      <b>⚠ 파일을 직접 열었습니다(file://)</b><br>
+      <b>파일을 직접 열었습니다(file://)</b><br>
       <span class="hint">YouTube가 "오류 153"으로 재생을 거부할 수 있습니다. 이 폴더에서 <code>python3 -m http.server 8000</code> 실행 후 <code>http://localhost:8000/music_quiz.html</code> 로 접속하세요. (또는 웹 호스팅)</span>
     </div>
     <div class="card">
       <div class="top"><b>곡 목록</b><span class="chip" id="cnt">0곡</span></div>
       <div id="rows"></div>
-      <button class="add" id="btnAdd">＋ 곡 추가</button>
-      <div class="hint">구간은 <b>1:30</b> 또는 <b>90</b>(초) 형식. 비우면 시작=0:00, 끝=영상 끝. 구간이 재생시간보다 짧으면 구간 시작점부터 재생합니다.</div>
+      <button class="add" id="btnAdd">곡 추가</button>
+      <div class="hint">한 곡에 영상을 여러 개 넣을 수 있습니다. 출제 때는 그중 <b>하나가 무작위로 선택</b>되고(재생 오류 시 다른 영상으로 자동 전환), 그 영상의 구간 안 무작위 위치에서 재생됩니다.<br>구간은 <b>1:30</b> 또는 <b>90</b>(초) 형식. 비우면 시작=0:00, 끝=영상 끝. 구간이 재생시간보다 짧으면 구간 시작점부터 재생합니다.</div>
     </div>
     <div class="bar">
-      <button id="btnStart">▶ 시작</button>
+      <button id="btnStart">시작</button>
       <button class="ghost" id="btnSave">임시저장</button>
       <button class="ghost" id="btnExport">JSON 내보내기</button>
       <button class="ghost" id="btnImport">JSON 불러오기</button>
@@ -146,7 +154,7 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
         <tbody id="ans"></tbody>
       </table>
     </div>
-    <div class="bar"><button id="btnAgain">🔀 다시 하기</button><button class="ghost" id="btnBack">설정으로</button></div>
+    <div class="bar"><button id="btnAgain">다시 하기</button><button class="ghost" id="btnBack">설정으로</button></div>
   </div>
 </div>
 
@@ -156,9 +164,9 @@ a.go{color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));paddin
     <h2>퀴즈 설정</h2>
     <div class="msg" id="mInfo"></div>
     <div class="fld"><label>곡당 재생시간 (초)</label>
-      <div class="stp"><button class="ghost" data-t="dur" data-d="-5">−</button><input type="number" id="inDur" min="1" max="300"><button class="ghost" data-t="dur" data-d="5">＋</button></div></div>
+      <div class="stp"><button class="ghost" data-t="dur" data-d="-5">-</button><input type="number" id="inDur" min="1" max="300"><button class="ghost" data-t="dur" data-d="5">+</button></div></div>
     <div class="fld"><label>출제 곡 수</label>
-      <div class="stp"><button class="ghost" data-t="num" data-d="-1">−</button><input type="number" id="inNum" min="1"><button class="ghost" data-t="num" data-d="1">＋</button></div></div>
+      <div class="stp"><button class="ghost" data-t="num" data-d="-1">-</button><input type="number" id="inNum" min="1"><button class="ghost" data-t="num" data-d="1">+</button></div></div>
     <div class="bar" style="justify-content:flex-end;margin-top:22px"><button class="ghost" id="mCancel">취소</button><button id="mGo">퀴즈 시작</button></div>
   </div>
 </div>
@@ -172,15 +180,27 @@ const rowsEl = $('rows');
 let DUR = 30, player, apiReady = false, queue = [], idx = 0, timer = null, startPos = 0, armed = false, pool = [];
 
 // ---------- 곡 목록 UI ----------
+function addSrc(box, d = {}) {
+  const r = document.createElement('div');
+  r.className = 'src';
+  r.innerHTML = `<input data-k="url" placeholder="YouTube URL (https://youtu.be/...)"><input data-k="s" placeholder="시작 0:00"><input data-k="e" placeholder="끝 (비움=끝까지)" title="구간 끝: 비우면 영상 끝까지"><button class="sx" title="영상 삭제">삭제</button>`;
+  r.querySelectorAll('input').forEach(i => i.value = d[i.dataset.k] || '');
+  r.querySelector('.sx').onclick = () => { r.remove(); if (!box.children.length) addSrc(box); save(); };
+  box.appendChild(r);
+  return r;
+}
 function addRow(d = {}) {
   const r = document.createElement('div');
   r.className = 'song';
-  r.innerHTML = `<div class="n"></div>
+  r.innerHTML = `<div class="head"><div class="n"></div>
     <input data-k="composer" placeholder="작곡가"><input data-k="title" placeholder="제목"><input data-k="genre" placeholder="장르">
-    <input data-k="url" placeholder="YouTube URL (https://youtu.be/...)">
-    <input data-k="s" placeholder="시작 0:00"><input data-k="e" placeholder="끝 (비움=끝까지)" title="구간 끝: 비우면 영상 끝까지">
-    <button class="x" title="삭제">✕</button>`;
-  r.querySelectorAll('input').forEach(i => i.value = d[i.dataset.k] || '');
+    <button class="x" title="곡 삭제">삭제</button></div>
+    <div class="srcs"></div><button class="ghost addsrc">영상 추가</button>`;
+  r.querySelectorAll('.head input').forEach(i => i.value = d[i.dataset.k] || '');
+  const box = r.querySelector('.srcs');
+  const srcs = Array.isArray(d.sources) && d.sources.length ? d.sources : [{ url: d.url, s: d.s, e: d.e }];  // 구버전(url/s/e) 호환
+  srcs.forEach(x => addSrc(box, x));
+  r.querySelector('.addsrc').onclick = () => { const n = addSrc(box); save(); n.querySelector('input').focus(); };
   r.querySelector('.x').onclick = () => { r.remove(); if (!rowsEl.children.length) addRow(); renum(); save(); };
   rowsEl.appendChild(r); renum();
   return r;
@@ -190,7 +210,12 @@ function renum() {
   $('cnt').textContent = rowsEl.children.length + '곡';
 }
 function readRows() {
-  return [...rowsEl.children].map(r => { const o = {}; r.querySelectorAll('input').forEach(i => o[i.dataset.k] = i.value.trim()); return o; });
+  return [...rowsEl.children].map(r => {
+    const o = {};
+    r.querySelectorAll('.head input').forEach(i => o[i.dataset.k] = i.value.trim());
+    o.sources = [...r.querySelectorAll('.src')].map(sr => { const q = {}; sr.querySelectorAll('input').forEach(i => q[i.dataset.k] = i.value.trim()); return q; });
+    return o;
+  });
 }
 function fill(arr) {
   rowsEl.innerHTML = '';
@@ -204,13 +229,13 @@ if (location.protocol === 'file:') $('fileWarn').classList.remove('hide');
 rowsEl.addEventListener('input', save);
 $('btnAdd').onclick = () => { const r = addRow(); save(); r.querySelector('input').focus(); r.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
 $('btnClear').onclick = () => { if (confirm('입력한 내용을 모두 지울까요?')) { fill([]); save(); } };
-$('btnSave').onclick = () => save() ? stamp('✅ 임시저장 완료(이 브라우저)') : $('setupMsg').textContent = '저장 실패: JSON 내보내기를 이용하세요.';
+$('btnSave').onclick = () => save() ? stamp('임시저장 완료(이 브라우저)') : $('setupMsg').textContent = '저장 실패: JSON 내보내기를 이용하세요.';
 $('btnExport').onclick = () => {
   const data = { app: 'music-quiz', version: 2, savedAt: new Date().toISOString(), songs: readRows() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   a.download = 'music_quiz_' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a); a.click(); a.remove(); stamp('✅ JSON 내보내기 완료');
+  document.body.appendChild(a); a.click(); a.remove(); stamp('JSON 내보내기 완료');
 };
 $('btnImport').onclick = () => $('fileIn').click();
 $('fileIn').onchange = ev => {
@@ -221,7 +246,7 @@ $('fileIn').onchange = ev => {
       const j = JSON.parse(rd.result), arr = Array.isArray(j) ? j : j.songs;
       if (!Array.isArray(arr)) throw 0;
       if (!confirm('현재 목록을 불러온 파일 내용(' + arr.length + '곡)으로 교체할까요?')) return;
-      fill(arr); save(); stamp('✅ 불러오기 완료 (' + arr.length + '곡)');
+      fill(arr); save(); stamp('불러오기 완료 (' + arr.length + '곡)');
     } catch (e) { $('setupMsg').textContent = '불러오기 실패: 올바른 JSON 파일이 아닙니다.'; }
   };
   rd.readAsText(f); ev.target.value = '';
@@ -246,16 +271,20 @@ function show(id) { ['setup', 'play', 'result'].forEach(x => $(x).classList.togg
 // ---------- 시작 설정 모달 ----------
 function openModal() {
   if (!apiReady) { $('setupMsg').textContent = 'YouTube 플레이어 로딩 중... 잠시 후 다시 눌러주세요(인터넷 연결 확인).'; return; }
-  pool = readRows().map(r => ({ ...r, id: vid(r.url), a: sec(r.s) || 0, b: sec(r.e) })).filter(r => r.id && (r.title || r.composer));
+  pool = readRows().map(r => {
+    r.srcs = r.sources.map(x => ({ id: vid(x.url), a: sec(x.s) || 0, b: sec(x.e) })).filter(x => x.id);
+    r.srcs.forEach((x, i) => x.n = i + 1);
+    return r;
+  }).filter(r => r.srcs.length && (r.title || r.composer));
   if (!pool.length) { $('setupMsg').textContent = '유효한 YouTube URL과 곡 정보를 1곡 이상 입력하세요.'; return; }
-  const bad = pool.find(r => r.b != null && r.b <= r.a);
-  if (bad) { $('setupMsg').textContent = `"${bad.title}" 구간 끝이 시작보다 빠릅니다.`; return; }
+  const bad = pool.find(r => r.srcs.some(x => x.b != null && x.b <= x.a));
+  if (bad) { $('setupMsg').textContent = `"${bad.title || bad.composer}" 의 구간 끝이 시작보다 빠른 영상이 있습니다.`; return; }
   $('setupMsg').textContent = '';
   let o = {}; try { o = JSON.parse(localStorage.getItem(KEYS) || '{}'); } catch (e) {}
   $('inDur').value = o.dur || 30;
   $('inNum').value = pool.length;
   $('inNum').max = pool.length;
-  $('mInfo').textContent = `등록된 유효 곡: ${pool.length}곡`;
+  $('mInfo').textContent = `등록된 유효 곡: ${pool.length}곡 (영상 ${pool.reduce((n, r) => n + r.srcs.length, 0)}개)`;
   $('modal').classList.remove('hide');
 }
 document.querySelectorAll('.stp button').forEach(b => b.onclick = () => {
@@ -295,10 +324,17 @@ const ERR = {
 };
 function onErr(e) {
   if (!armed || !queue[idx]) return;
+  const s = queue[idx];
+  if (s.tryIdx + 1 < s.order.length) {      // 같은 곡의 다른 영상으로 자동 전환
+    s.tryIdx++;
+    $('pMsg').textContent = `영상 재생 오류(코드 ${e.data}). 같은 곡의 다른 영상으로 전환합니다.`;
+    loadSource(s);
+    return;
+  }
   clearInterval(timer); timer = null; armed = false;
   $('disc').classList.remove('spin');
   queue[idx].played = null;
-  $('pMsg').innerHTML = `⚠ 재생 오류 (코드 ${e.data}): ${ERR[e.data] || '알 수 없는 오류'}<br>「다음」을 눌러 넘어가세요.`;
+  $('pMsg').innerHTML = `재생 오류 (코드 ${e.data}): ${ERR[e.data] || '알 수 없는 오류'}<br>'다음'을 눌러 넘어가세요.`;
   $('btnNext').disabled = false; nextLabel(true);
 }
 function onState(e) {
@@ -306,7 +342,7 @@ function onState(e) {
   const s = queue[idx];
   if (s.needSeek) {
     s.needSeek = false;
-    pickStart(s, s.a, player.getDuration());
+    pickStart(s, s.cur.a, player.getDuration());
     player.seekTo(startPos, true);
     player.unMute();
     return;
@@ -330,7 +366,7 @@ function beginTimer() {
 }
 function nextLabel(done) {
   const last = idx === queue.length - 1;
-  $('btnNext').textContent = done ? (last ? '끝' : '다음') : (last ? '건너뛰고 끝 ⏭' : '건너뛰기 ⏭');
+  $('btnNext').textContent = done ? (last ? '끝' : '다음') : (last ? '건너뛰고 끝' : '건너뛰기');
 }
 function finishClip() {
   clearInterval(timer); timer = null; armed = false;
@@ -347,18 +383,24 @@ function playCurrent() {
   clearInterval(timer); timer = null;
   $('pNo').textContent = `${idx + 1} / ${queue.length}`;
   $('pTime').textContent = DUR; $('pBar').style.width = '0';
-  $('pMsg').textContent = '재생 중... 🎧';
+  $('pMsg').textContent = '재생 중...';
   $('disc').classList.add('spin');
   $('btnNext').disabled = false; nextLabel(false);
   armed = true; s.played = null; s.endAt = null; s.skipped = false; s.ans = null; s.ok = null;
   ['aComposer', 'aTitle', 'aGenre'].forEach(i => $(i).value = '');
-  if (s.b == null) {
-    s.needSeek = true; player.mute(); startPos = s.a;
-    player.loadVideoById({ videoId: s.id, startSeconds: s.a });
+  s.order = shuffle(s.srcs.slice()); s.tryIdx = 0;   // 영상 무작위 선택(오류 시 다음 순서로 전환)
+  loadSource(s);
+}
+function loadSource(s) {
+  const v = s.cur = s.order[s.tryIdx];
+  clearInterval(timer); timer = null; armed = true; s.played = null;
+  if (v.b == null) {
+    s.needSeek = true; player.mute(); startPos = v.a;
+    player.loadVideoById({ videoId: v.id, startSeconds: v.a });
   } else {
     s.needSeek = false; player.unMute();
-    pickStart(s, s.a, s.b);
-    player.loadVideoById({ videoId: s.id, startSeconds: startPos });
+    pickStart(s, v.a, v.b);
+    player.loadVideoById({ videoId: v.id, startSeconds: startPos });
   }
 }
 function startQuiz(n) {
@@ -387,10 +429,10 @@ function renderResult() {
       if (!s[k]) return '<span class="msg">-</span>';
       tot++; if (s.ok[k]) got++;
       const my = s.ans[k] ? esc(s.ans[k]) : '(무응답)';
-      return `<div class="cor">${k === 'genre' ? `<span class="g">${esc(s[k])}</span>` : esc(s[k])}</div><span class="my ${s.ok[k] ? 'ok' : 'no'}" data-i="${i}" data-k="${k}" title="클릭: 정답/오답 전환">${s.ok[k] ? '✔' : '✘'} ${my}</span>`;
+      return `<div class="cor">${k === 'genre' ? `<span class="g">${esc(s[k])}</span>` : esc(s[k])}</div><span class="my ${s.ok[k] ? 'ok' : 'no'}" data-i="${i}" data-k="${k}" title="클릭: 정답/오답 전환">${my} (${s.ok[k] ? '정답' : '오답'})</span>`;
     };
-    const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.endAt != null ? s.endAt : s.played + DUR)}</span>${s.skipped ? ' <span class="msg">(건너뜀)</span>' : ''}`;
-    const go = s.played == null ? '' : `<a class="go" target="_blank" rel="noopener" href="https://youtu.be/${s.id}?t=${Math.floor(s.played)}">▶ ${fmt(s.played)}부터</a>`;
+    const seg = s.played == null ? '<span class="msg">재생 안 됨</span>' : `<span class="seg">${fmt(s.played)} ~ ${fmt(s.endAt != null ? s.endAt : s.played + DUR)}</span>${s.skipped ? ' <span class="msg">(건너뜀)</span>' : ''}${s.srcs.length > 1 ? ` <span class="g">영상 ${s.cur.n}/${s.srcs.length}</span>` : ''}`;
+    const go = s.played == null ? '' : `<a class="go" target="_blank" rel="noopener" href="https://youtu.be/${s.cur.id}?t=${Math.floor(s.played)}">${fmt(s.played)}부터 듣기</a>`;
     return `<tr><td class="i">${i + 1}</td><td>${cell('composer')}</td><td>${cell('title')}</td><td>${cell('genre')}</td><td>${seg}</td><td>${go}</td></tr>`;
   }).join('');
   $('score').innerHTML = `점수 <b>${got}</b> / ${tot}`;
