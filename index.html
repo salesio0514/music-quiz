@@ -238,6 +238,12 @@ $('btnExport').onclick = () => {
   document.body.appendChild(a); a.click(); a.remove(); stamp('JSON 내보내기 완료');
 };
 $('btnImport').onclick = () => $('fileIn').click();
+function isBlank(r) {
+  if (!r) return true;
+  const hasUrl = Array.isArray(r.sources) ? r.sources.some(x => x && x.url) : !!r.url;
+  return !(r.composer || r.title || r.genre) && !hasUrl;
+}
+function songKey(r) { return [r.composer, r.title, r.genre].map(norm).join('|'); }
 $('fileIn').onchange = ev => {
   const f = ev.target.files[0]; if (!f) return;
   const rd = new FileReader();
@@ -245,8 +251,20 @@ $('fileIn').onchange = ev => {
     try {
       const j = JSON.parse(rd.result), arr = Array.isArray(j) ? j : j.songs;
       if (!Array.isArray(arr)) throw 0;
-      if (!confirm('현재 목록을 불러온 파일 내용(' + arr.length + '곡)으로 교체할까요?')) return;
-      fill(arr); save(); stamp('불러오기 완료 (' + arr.length + '곡)');
+      // 작곡가·제목·장르가 모두 같은 곡 = 덮어쓰기, 나머지 = 추가
+      const out = readRows().filter(r => !isBlank(r));
+      const idxOf = new Map(); out.forEach((r, i) => { const k = songKey(r); if (k !== '||') idxOf.set(k, i); });
+      let over = 0, add = 0;
+      arr.forEach(r => {
+        if (isBlank(r)) return;
+        const k = songKey(r);
+        if (k !== '||' && idxOf.has(k)) { out[idxOf.get(k)] = r; over++; }
+        else { if (k !== '||') idxOf.set(k, out.length); out.push(r); add++; }
+      });
+      if (!over && !add) { $('setupMsg').textContent = '불러올 곡이 없습니다(빈 목록).'; return; }
+      if (!confirm(`불러온 파일 적용: 같은 곡 덮어쓰기 ${over}곡, 새로 추가 ${add}곡.\n(작곡가·제목·장르가 모두 같으면 같은 곡으로 봅니다)\n진행할까요?`)) return;
+      fill(out); save();
+      stamp(`불러오기 완료 (덮어쓰기 ${over}곡, 추가 ${add}곡, 전체 ${out.length}곡)`);
     } catch (e) { $('setupMsg').textContent = '불러오기 실패: 올바른 JSON 파일이 아닙니다.'; }
   };
   rd.readAsText(f); ev.target.value = '';
